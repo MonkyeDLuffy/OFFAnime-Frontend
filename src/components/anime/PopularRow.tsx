@@ -11,15 +11,28 @@ import PopularCard from "./PopularCard";
 import { useCarouselScroll } from "./use-carousel-scroll";
 
 /**
- * Horizontal "Popular Anime" carousel — same native-scroll behavior as the
- * Top 10 row (hidden scrollbar, no scroll snapping, overscroll containment,
- * clip-locked vertical axis) via the shared useCarouselScroll hook.
+ * Horizontal carousel for the poster-card home rows — the same component
+ * renders "Popular Anime" and "TOP RATED ANIME" (Trending keeps its own thin
+ * wrapper that reuses the same PopularCard cards). Native-scroll behavior
+ * matches the Top 10 row (hidden scrollbar, no scroll snapping, overscroll
+ * containment, clip-locked vertical axis) via the shared useCarouselScroll
+ * hook; the glass nav arrows and edge fades come from the shared carousel-ui.
  *
  * The row reserves tall bottom padding (pb-28 sm:pb-32): that space hosts the
  * cards' hover info panels, so the expanded card is never clipped by the
  * scroller's overflow clip and the row never jumps when a card expands.
  */
-export default function PopularRow({ entries }: { entries: PopularEntry[] }) {
+export default function PopularRow({
+  entries,
+  listLabel = "Popular anime",
+  navLabelPrefix = "Popular row",
+}: {
+  entries: PopularEntry[];
+  /** Accessible name of the carousel list. */
+  listLabel?: string;
+  /** Prefix for the scroll navigation buttons' accessible labels. */
+  navLabelPrefix?: string;
+}) {
   const { scrollerRef, canScrollLeft, canScrollRight, scrollByPage } =
     useCarouselScroll(entries.length);
 
@@ -28,7 +41,7 @@ export default function PopularRow({ entries }: { entries: PopularEntry[] }) {
       <ul
         ref={scrollerRef}
         role="list"
-        aria-label="Popular anime"
+        aria-label={listLabel}
         className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-28 pt-4 sm:gap-5 sm:px-10 sm:pb-32 lg:gap-6 lg:px-16 xl:px-24"
       >
         {entries.map((entry) => (
@@ -47,7 +60,7 @@ export default function PopularRow({ entries }: { entries: PopularEntry[] }) {
         <button
           type="button"
           onClick={() => scrollByPage(-1)}
-          aria-label="Scroll Popular row backward"
+          aria-label={`Scroll ${navLabelPrefix} backward`}
           className={`${CAROUSEL_NAV_BUTTON_CLASS} left-3 sm:left-5`}
         >
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -57,7 +70,7 @@ export default function PopularRow({ entries }: { entries: PopularEntry[] }) {
         <button
           type="button"
           onClick={() => scrollByPage(1)}
-          aria-label="Scroll Popular row forward"
+          aria-label={`Scroll ${navLabelPrefix} forward`}
           className={`${CAROUSEL_NAV_BUTTON_CLASS} right-3 sm:right-5`}
         >
           <ChevronRight className="h-5 w-5" aria-hidden="true" />

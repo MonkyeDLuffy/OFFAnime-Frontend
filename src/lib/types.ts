@@ -19,6 +19,26 @@ export interface AnimeImages {
   banner: string | null;
 }
 
+/**
+ * Trailer reference attached to `/api/home` cards: a YouTube trailer record
+ * (`{ id, site, key, url }`) or null when the card has none.
+ */
+export interface AnimeTrailer {
+  id: string | null;
+  site: string | null;
+  key: string | null;
+  url: string | null;
+}
+
+/**
+ * A resolved, embeddable trailer for the hover previews: a YouTube video ID
+ * (rendered through the proper YouTube embed) or a directly playable media
+ * URL (rendered through a native `<video>` element). Null → poster only.
+ */
+export type TrailerSource =
+  | { kind: "youtube"; videoId: string }
+  | { kind: "video"; src: string };
+
 /** Canonical normalized anime shape (backend.md §7). */
 export interface Anime {
   id: number;
@@ -50,6 +70,8 @@ export interface Anime {
   endDate: string | null;
   averageScore: number | null;
   popularity: number | null;
+  /** Trailer record from the home card; optional (older cached payloads omit it). */
+  trailer?: AnimeTrailer | null;
 }
 
 /** `GET /api/home` response. A failing section may be omitted upstream. */
@@ -146,6 +168,8 @@ export interface PopularEntry {
   format: string | null;
   year: number | null;
   episodeCount: number | null;
+  /** Resolved trailer from the home card's `trailer` field (null → no preview). */
+  trailer: TrailerSource | null;
 }
 
 /** Discriminated result for server-side backend calls. */

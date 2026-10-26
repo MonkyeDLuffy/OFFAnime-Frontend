@@ -174,6 +174,35 @@ body {
   display: none;
 }
 
+/* ---- Hover trailer preview popup ---- */
+
+/* Netflix-style expansion for the delayed hover preview: the popup slides
+   out of the poster's edge with a subtle horizontal translate, a restrained
+   scale and an opacity fade. Transform/opacity only — position is set once
+   and never animated. The travel direction flips with the placement side
+   (right/left of the poster) via the element's --trailer-popup-shift-x. */
+@keyframes trailer-popup-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--trailer-popup-shift-x, -18px), 0, 0)
+      scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.trailer-popup-in {
+  animation: trailer-popup-in 280ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trailer-popup-in {
+    animation: none;
+  }
+}
+
 /* ---- Liquid Glass — shared premium button skin ---- */
 
 /* One translucent, blurred, rim-lit surface shared by every button and

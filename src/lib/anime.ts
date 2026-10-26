@@ -4,6 +4,7 @@ import type {
   PopularEntry,
   TmdbVisuals,
   TopTenEntry,
+  TrailerSource,
   TrendingEntry,
 } from "./types";
 
@@ -21,6 +22,8 @@ export const MAX_TOP_TEN = 10;
 export const MAX_POPULAR = 20;
 /** Entries shown in the "Trending Anime" homepage row. */
 export const MAX_TRENDING_ROW = 20;
+/** Entries shown in the "TOP RATED ANIME" homepage row. */
+export const MAX_TOP_RATED = 20;
 
 /** Hosts allowlisted for next/image optimization (next.config.ts mirrors this). */
 const OPTIMIZABLE_IMAGE_HOSTS = new Set(["image.tmdb.org", "s4.anilist.co"]);
@@ -517,16 +520,18 @@ export function buildTopTenEntries(
 }
 
 /**
- * Shared builder for the poster-card home rows ("Trending Anime" and
+ * Shared builder for the portrait poster home rows ("Trending Anime" and
  * "Popular Anime") — both `/api/home` sections carry the identical card
  * payload, so one mapping serves both rows and both render through the same
  * PopularCard component. Upstream order is preserved, entries are validated
- * and de-duplicated, and the best available portrait poster is resolved with
- * the same image logic as the Top 10 row (poster → cover, restricted to
- * optimizer-allowlisted hosts; the higher-res AniList `large` cover variant
- * goes first). The home cards carry only format, episodes and season/year
- * metadata, which is passed through untouched for the hover panel; nothing
- * is ever fabricated and short lists simply yield fewer entries.
+ * and de-duplicated, and the card image is resolved from the card's own
+ * artwork with the same image logic as the Top 10 row (poster → cover,
+ * restricted to optimizer-allowlisted hosts; the higher-res AniList `large`
+ * cover variant goes first). The home cards carry only format, episodes and
+ * season/year metadata, which is passed through untouched for the hover
+ * panel; the card's `trailer` field is resolved alongside (no extra
+ * requests — it arrives in the same `/api/home` payload). Nothing is ever
+ * fabricated and short lists simply yield fewer entries.
  */
 function buildPosterRowEntries(source: unknown, max: number): PopularEntry[] {
   return selectTrendingSlides(source, max).map((anime) => {
@@ -545,6 +550,7 @@ function buildPosterRowEntries(source: unknown, max: number): PopularEntry[] {
       format: asNonEmptyString(anime.format),
       year: getDisplayYear(anime),
       episodeCount: getDisplayEpisodeCount(anime),
+      trailer: getAnimeTrailerSource(anime),
     };
   });
 }
@@ -570,4 +576,91 @@ export function buildPopularEntries(
   max: number = MAX_POPULAR,
 ): PopularEntry[] {
   return buildPosterRowEntries(popular, max);
+}
+
+/**
+ * Builds the entries for the "TOP RATED ANIME" row (the homepage's final
+ * carousel, below "Trending Anime") from the raw `/api/home` `topRated`
+ * collection — a distinct section from trending/popular, never substituted.
+ * The backend ships the entries already ranked, so upstream order is
+ * preserved exactly as delivered; the payload carries 20 entries, matching
+ * the other rows' cap, so every entry renders.
+ */
+export function buildTopRatedEntries(
+  topRated: unknown,
+  max: number = MAX_TOP_RATED,
+): PopularEntry[] {
+  return buildPosterRowEntries(topRated, max);
+}
+
+/** Canonical 11-character YouTube video ID. */
+const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+
+/** Direct media URLs a native `<video>` element can actually play. */
+const DIRECT_MEDIA_PATTERN =
+  /^https?:\/\/\S+\.(?:mp4|webm|ogv|ogg|mov)(?:\?\S*)?$/i;
+
+/**
+ * Pulls an 11-character YouTube ID out of every string form the backend may
+ * supply: a bare ID, a watch URL, a youtu.be short link or an embed URL.
+ */
+function toYouTubeId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (YOUTUBE_ID_PATTERN.test(raw)) return raw;
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+    if (host === "youtu.be") {
+      const id = url.pathname.slice(1).split("/")[0];
+      return YOUTUBE_ID_PATTERN.test(id) ? id : null;
+    }
+    if (
+      host === "youtube.com" ||
+      host === "youtube-nocookie.com" ||
+      host === "m.youtube.com"
+    ) {
+      const v = url.searchParams.get("v");
+      if (v && YOUTUBE_ID_PATTERN.test(v)) return v;
+      const pathId = url.pathname.match(
+        /\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/,
+      );
+      if (pathId) return pathId[1];
+    }
+  } catch {
+    // Not a URL — a non-ID string yields no trailer.
+  }
+  return null;
+}
+
+function toDirectMediaUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  return DIRECT_MEDIA_PATTERN.test(raw) ? raw : null;
+}
+
+/**
+ * Resolves the home card's `trailer` record (`{ id, site, key, url }` —
+ * currently always a YouTube trailer) into a playable source. YouTube wins
+ * over a direct file URL; anything unrecognized yields null so the card
+ * keeps its poster — nothing is ever fabricated.
+ */
+export function getAnimeTrailerSource(anime: Anime): TrailerSource | null {
+  const trailer: unknown = anime.trailer;
+  if (typeof trailer === "string") {
+    const videoId = toYouTubeId(trailer);
+    if (videoId) return { kind: "youtube", videoId };
+    const direct = toDirectMediaUrl(trailer);
+    return direct ? { kind: "video", src: direct } : null;
+  }
+  if (!isRecord(trailer)) return null;
+  const videoId =
+    toYouTubeId(trailer.id) ??
+    toYouTubeId(trailer.key) ??
+    toYouTubeId(trailer.youtube_id) ??
+    toYouTubeId(trailer.embed_url) ??
+    toYouTubeId(trailer.url);
+  if (videoId) return { kind: "youtube", videoId };
+  const direct = toDirectMediaUrl(trailer.url);
+  return direct ? { kind: "video", src: direct } : null;
 }
