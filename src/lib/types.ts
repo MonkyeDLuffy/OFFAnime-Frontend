@@ -185,3 +185,46 @@ export type ApiResult<T> =
   | { ok: false; kind: ApiErrorKind; status?: number; code?: string };
 
 export type HeroErrorKind = ApiErrorKind;
+
+/**
+ * Episode metadata from `/api/episodes/:id` (backend.md §6).
+ * Jikan episode list + AniZip enrichment.
+ */
+export interface AnimeEpisode {
+  episode: number;
+  globalEpisodeNumber: number;
+  episodeNumber: number;
+  seasonNumber: number;
+  absoluteEpisodeNumber: number;
+  anidbEid: number | null;
+  tvdbId: number | null;
+  malId: number | null;
+  title: string;
+  titleJapanese: string | null;
+  titleVariants: Record<string, string> | null;
+  image: string | null;
+  overview: string | null;
+  aired: string | null;
+  airDateUtc: string | null;
+  runtime: number | null;
+  score: number | null;
+  filler: boolean | null;
+  recap: boolean | null;
+  episodeType: string | null;
+  source: string;
+}
+
+/** `GET /api/episodes/:id` response shape. */
+export interface EpisodesResponse {
+  id: number;
+  anilistId: number;
+  malId: number | null;
+  totalEpisodes: number | null;
+  pageInfo: {
+    currentPage: number;
+    hasNextPage: boolean;
+  } | null;
+  episodes: AnimeEpisode[] | null;
+  source: string;
+  diagnostics: Record<string, unknown>;
+}

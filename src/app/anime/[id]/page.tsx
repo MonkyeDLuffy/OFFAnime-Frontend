@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AnimeDetailsHero from "@/components/anime/AnimeDetailsHero";
+import EpisodesCarousel from "@/components/anime/EpisodesCarousel";
 import { HeroErrorState } from "@/components/anime/HeroStates";
 import {
   buildDetailsHeroSlide,
@@ -8,8 +9,8 @@ import {
   getDisplayDescription,
   getDisplayTitle,
 } from "@/lib/anime";
-import { getAnimeDetails, getHomeFeed, getTmdbVisuals } from "@/lib/api";
-import type { TrailerSource } from "@/lib/types";
+import { getAnimeDetails, getAnimeEpisodes, getHomeFeed, getTmdbVisuals } from "@/lib/api";
+import type { EpisodesResponse, TrailerSource } from "@/lib/types";
 
 /**
  * Anime details page `/anime/[id]` (`id` = AniList ID — the exact target the
@@ -90,12 +91,22 @@ export default async function AnimeDetailsPage({
   const visuals = await getTmdbVisuals(anilistId);
   const slide = buildDetailsHeroSlide(anime, visuals.ok ? visuals.data : null);
 
+  // Episodes data (1h cache; failure is non-fatal — section handles it).
+  const episodesResult = await getAnimeEpisodes(anilistId);
+  const episodesData: EpisodesResponse | null = episodesResult.ok ? episodesResult.data : null;
+
   return (
     <main>
       <AnimeDetailsHero
         slide={slide}
         info={anime}
         trailer={await findHomeCardTrailer(anilistId)}
+      />
+      <EpisodesCarousel
+        episodes={episodesData?.episodes ?? null}
+        isLoading={false}
+        error={!episodesResult.ok}
+        anilistId={anilistId}
       />
     </main>
   );

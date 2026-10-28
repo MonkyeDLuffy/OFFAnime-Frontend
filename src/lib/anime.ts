@@ -28,7 +28,11 @@ export const MAX_TOP_RATED = 20;
 export const MAX_SEASONAL = 20;
 
 /** Hosts allowlisted for next/image optimization (next.config.ts mirrors this). */
-const OPTIMIZABLE_IMAGE_HOSTS = new Set(["image.tmdb.org", "s4.anilist.co"]);
+const OPTIMIZABLE_IMAGE_HOSTS = new Set([
+  "image.tmdb.org",
+  "s4.anilist.co",
+  "artworks.thetvdb.com",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

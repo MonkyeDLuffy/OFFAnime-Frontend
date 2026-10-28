@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Anime, ApiResult, HomeFeed, TmdbVisuals } from "./types";
+import type { Anime, ApiResult, HomeFeed, TmdbVisuals, EpisodesResponse } from "./types";
 
 /**
  * Server-side client for the OffAnime backend (backend.md §5, §10).
@@ -109,7 +109,7 @@ function withDeadline<T>(promise: Promise<T>, deadlineMs: number): Promise<T> {
   });
 }
 
-async function requestJsonOnce<T>(
+export async function requestJsonOnce<T>(
   path: string,
   revalidateSeconds: number,
   timeoutMs: number,
@@ -202,6 +202,16 @@ export function getAnimeDetails(anilistId: number): Promise<ApiResult<Anime>> {
   return requestJson<Anime>(
     `/details/${anilistId}`,
     DETAILS_REVALIDATE_SECONDS,
+    HOME_TIMEOUT_MS,
+  );
+}
+
+/** Episodes list can be very large (e.g., One Piece 1000+ episodes = 2.3MB+).
+ *  Use no-store (revalidate=0) to avoid Next.js cache size limits. */
+export function getAnimeEpisodes(anilistId: number): Promise<ApiResult<EpisodesResponse>> {
+  return requestJsonOnce<EpisodesResponse>(
+    `/episodes/${anilistId}`,
+    0,
     HOME_TIMEOUT_MS,
   );
 }
