@@ -10,10 +10,9 @@ import type { AnimeEpisode } from "@/lib/types";
  *
  * - 16:9 thumbnail with episode number badge (bottom-left) and
  *   duration badge (bottom-right).
- * - Title + clamped overview below.
- * - Mirrors the homepage poster card's polish: subtle border,
- *   dark background, hover lift, hidden scrollbar, no layout shift.
- * - Image falls back: episode image → AniList cover → cinematic gradient.
+ * - Title + clamped overview below the image.
+ * - Premium hover: scale 1.04, brightness boost, subtle glow, title brightening.
+ * - GPU-friendly transforms, no layout shift, no neighbor push.
  * - Fixed aspect-ratio frame prevents layout shift while image loads.
  */
 export default function EpisodeCard({
@@ -36,9 +35,9 @@ export default function EpisodeCard({
   const runtimeText = runtime ? `${runtime}m` : null;
 
   return (
-    <li className="group relative shrink-0 w-[220px] sm:w-[240px] md:w-[260px] lg:w-[280px]">
+    <li className="group relative shrink-0 w-[320px] sm:w-[300px] md:w-[340px] lg:w-[360px]">
       <article
-        className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-[0_6px_20px_rgba(0,0,0,0.45)] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:border-white/25 hover:shadow-[0_20px_45px_rgba(0,0,0,0.65)]"
+        className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-[transform,box-shadow,border-color,filter] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-2 hover:scale-[1.04] hover:border-white/30 hover:shadow-[0_32px_64px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.15)] hover:filter-brightness-[1.08]"
       >
         <div className="relative aspect-video overflow-hidden rounded-xl">
           {current ? (
@@ -47,7 +46,7 @@ export default function EpisodeCard({
               src={current}
               alt=""
               fill
-              sizes="(min-width: 1280px) 280px, (min-width: 768px) 260px, 240px"
+              sizes="(min-width: 1280px) 360px, (min-width: 768px) 340px, 300px"
               quality={90}
               draggable={false}
               onLoad={() => setIsLoaded(true)}
@@ -55,7 +54,7 @@ export default function EpisodeCard({
                 setFailedCount((count) => count + 1);
                 setIsLoaded(false);
               }}
-              className={`object-cover object-center transition-[opacity,transform] duration-500 ease-out hover:scale-[1.04] ${
+              className={`object-cover object-center transition-[opacity,transform,filter] duration-500 ease-out hover:scale-[1.02] hover:filter-brightness-[1.05] ${
                 isLoaded ? "opacity-100" : "opacity-0"
               }`}
             />
@@ -74,7 +73,7 @@ export default function EpisodeCard({
           {/* Episode number badge — bottom-left */}
           <span
             aria-hidden="true"
-            className="absolute left-2 bottom-2 z-10 rounded-full bg-[#050507]/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold tracking-[0.05em] text-white/90"
+            className="absolute left-2 bottom-2 z-10 rounded-full bg-[#050507]/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold tracking-[0.05em] text-white/90 transition-opacity duration-200 group-hover:opacity-100"
           >
             E{episodeNumber}
           </span>
@@ -83,13 +82,13 @@ export default function EpisodeCard({
           {runtimeText ? (
             <span
               aria-hidden="true"
-              className="absolute right-2 bottom-2 z-10 rounded-full bg-[#050507]/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold tracking-[0.05em] text-white/90"
+              className="absolute right-2 bottom-2 z-10 rounded-full bg-[#050507]/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold tracking-[0.05em] text-white/90 transition-opacity duration-200 group-hover:opacity-100"
             >
               {runtimeText}
             </span>
           ) : null}
 
-          {/* Subtle bottom gradient for text readability if no badges overlap */}
+          {/* Subtle bottom gradient for badge readability */}
           <span
             aria-hidden="true"
             className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#050507]/60 via-[#050507]/10 to-transparent"
@@ -98,11 +97,11 @@ export default function EpisodeCard({
 
         {/* Text content below image */}
         <div className="mt-3 px-1">
-          <h3 className="truncate text-sm font-semibold text-white">
+          <h3 className="truncate text-base font-semibold text-white/90 transition-colors duration-200 group-hover:text-white">
             {episode.title}
           </h3>
           {episode.overview ? (
-            <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-white/60">
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-white/55">
               {episode.overview}
             </p>
           ) : null}

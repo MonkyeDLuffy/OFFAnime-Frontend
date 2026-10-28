@@ -93,7 +93,7 @@ export default function EpisodesCarousel({
                 ref={scrollerRef}
                 role="list"
                 aria-label={listLabel}
-                className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-12 pt-4 sm:gap-5 sm:px-10 sm:pb-16 lg:gap-6 lg:px-16 xl:px-24"
+                className="no-scrollbar flex gap-5 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-16 pt-4 sm:gap-6 sm:px-10 sm:pb-20 lg:gap-7 lg:px-16 xl:px-24"
               >
                 {displayEpisodes.map((ep) =>
                   isLoading ? (
@@ -142,15 +142,15 @@ export default function EpisodesCarousel({
 /** Skeleton for a single episode card — mirrors EpisodeCard dimensions. */
 function EpisodeSkeleton() {
   return (
-    <li className="group relative shrink-0 w-[220px] sm:w-[240px] md:w-[260px] lg:w-[280px]">
+    <li className="group relative shrink-0 w-[320px] sm:w-[300px] md:w-[340px] lg:w-[360px]">
       <article
         aria-hidden="true"
-        className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease-in-out_infinite] shadow-[0_6px_20px_rgba(0,0,0,0.45)]"
+        className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease-in-out_infinite] shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
       />
       <div className="mt-3 px-1 space-y-2">
-        <div className="h-4 w-3/4 rounded bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease-in-out_infinite]" />
-        <div className="h-3 w-5/6 rounded bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease_in_out_infinite]" />
-        <div className="h-3 w-1/2 rounded bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease_in_out_infinite]" />
+        <div className="h-5 w-3/4 rounded bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease-in-out_infinite]" />
+        <div className="h-4 w-5/6 rounded bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease-in-out_infinite]" />
+        <div className="h-4 w-1/2 rounded bg-gradient-to-x from-[#0f1116] via-[#161820] to-[#0f1116] animate-[shimmer_3s_ease-in-out_infinite]" />
       </div>
     </li>
   );
