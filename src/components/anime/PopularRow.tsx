@@ -20,7 +20,15 @@ import { useCarouselScroll } from "./use-carousel-scroll";
  *
  * The row reserves tall bottom padding (pb-28 sm:pb-32): that space hosts the
  * cards' hover info panels, so the expanded card is never clipped by the
- * scroller's overflow clip and the row never jumps when a card expands.
+ * scroller's overflow clip and the row never jumps when a card expands. The
+ * wrapper's deliberate negative bottom margin (-mb-8 sm:-mb-12) hands the
+ * empty part of that reservation back to the layout: the next section's
+ * heading sits a balanced ~80px below the posters instead of ~200px, and a
+ * shown panel simply overlays the next section, Netflix-style. The overlay
+ * wins because the section lifts itself above the next one while a card is
+ * hovered/keyboard-focused (hover:z-10 focus-within:z-20 on the section —
+ * the one-shot reveal transforms trap every section at the same paint level,
+ * so a card-level z-index alone could never escape it).
  */
 export default function PopularRow({
   entries,
@@ -37,7 +45,7 @@ export default function PopularRow({
     useCarouselScroll(entries.length);
 
   return (
-    <div className="relative mt-4 sm:mt-5">
+    <div className="relative mt-4 -mb-8 sm:mt-5 sm:-mb-12">
       <ul
         ref={scrollerRef}
         role="list"

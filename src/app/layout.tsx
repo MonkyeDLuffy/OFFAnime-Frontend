@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import SiteFooter from "@/components/site-footer";
+import SiteNavbar from "@/components/site-navbar";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,7 +26,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        {/* Global navbar — fixed overlay, mounted once here so every route
+            (including the custom 404) gets it. */}
+        <SiteNavbar />
+        {children}
+        {/* Global footer — mounted once here so every route (including the
+            custom 404) gets it without per-page duplication. */}
+        <SiteFooter />
+      </body>
     </html>
   );
 }

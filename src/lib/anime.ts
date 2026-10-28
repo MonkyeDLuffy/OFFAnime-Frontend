@@ -24,6 +24,8 @@ export const MAX_POPULAR = 20;
 export const MAX_TRENDING_ROW = 20;
 /** Entries shown in the "TOP RATED ANIME" homepage row. */
 export const MAX_TOP_RATED = 20;
+/** Entries shown in the "Seasonal Anime" homepage row. */
+export const MAX_SEASONAL = 20;
 
 /** Hosts allowlisted for next/image optimization (next.config.ts mirrors this). */
 const OPTIMIZABLE_IMAGE_HOSTS = new Set(["image.tmdb.org", "s4.anilist.co"]);
@@ -161,6 +163,80 @@ export function getDisplayYear(anime: Anime): number | null {
 export function getDisplayEpisodeCount(anime: Anime): number | null {
   const episodes = asFiniteNumber(anime.episodes);
   return episodes !== null && episodes > 0 ? Math.round(episodes) : null;
+}
+
+/**
+ * Human labels for the canonical AniList status/format enums (backend.md §7).
+ * Unknown values fall through to a defensive title-cased rendering of the raw
+ * value, so a new enum member degrades gracefully instead of disappearing.
+ */
+const STATUS_LABELS: Record<string, string> = {
+  FINISHED: "Finished",
+  RELEASING: "Releasing",
+  NOT_YET_RELEASED: "Not Yet Released",
+  CANCELLED: "Cancelled",
+  HIATUS: "On Hiatus",
+};
+
+const FORMAT_LABELS: Record<string, string> = {
+  TV: "TV",
+  TV_SHORT: "TV Short",
+  MOVIE: "Movie",
+  SPECIAL: "Special",
+  OVA: "OVA",
+  ONA: "ONA",
+  MUSIC: "Music",
+};
+
+/** "TV_SHORT" → "TV Short" · "NOT_YET_AIRED" → "Not Yet Aired". */
+function humanizeEnumValue(raw: string): string {
+  return raw
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) =>
+      word.length <= 3
+        ? word.toUpperCase()
+        : word[0].toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join(" ");
+}
+
+/** Raw enum values are always compared case-insensitively. */
+export function getDisplayStatus(anime: Anime): string | null {
+  const raw = asNonEmptyString(anime.status);
+  if (raw === null) return null;
+  return STATUS_LABELS[raw.toUpperCase()] ?? humanizeEnumValue(raw);
+}
+
+export function getDisplayFormat(anime: Anime): string | null {
+  const raw = asNonEmptyString(anime.format);
+  if (raw === null) return null;
+  return FORMAT_LABELS[raw.toUpperCase()] ?? humanizeEnumValue(raw);
+}
+
+/**
+ * True when the payload's format is the MOVIE enum. AniList often reports
+ * `episodes: 1` for films, but a movie's meaningful facts are its status and
+ * runtime — callers use this to suppress the episode row for movies.
+ */
+export function isMovieFormat(anime: Anime): boolean {
+  return asNonEmptyString(anime.format)?.toUpperCase() === "MOVIE";
+}
+
+/**
+ * Runtime in minutes (AniList duration unit): "24 min" for a TV episode,
+ * "1h 53m" for a movie. Null when the payload carries no usable duration.
+ */
+export function getDisplayDuration(anime: Anime): string | null {
+  const minutes = asFiniteNumber(anime.duration);
+  if (minutes === null || minutes <= 0) return null;
+  const whole = Math.round(minutes);
+  if (whole >= 60) {
+    const hours = Math.floor(whole / 60);
+    const rest = whole % 60;
+    return rest > 0 ? `${hours}h ${rest}m` : `${hours}h`;
+  }
+  return `${whole} min`;
 }
 
 export function getDisplayGenres(anime: Anime): string[] {
@@ -491,6 +567,72 @@ export function buildHeroSlides(
 }
 
 /**
+ * Builds the presentation-ready hero for the `/anime/[id]` details page from
+ * the canonical `/api/details/:id` payload and its (optional) `/api/tmdb/:id`
+ * visual enrichment — the details payload itself is the artwork source, so no
+ * homepage card is involved.
+ *
+ * Background candidate priority (first valid URL wins; the rest become
+ * client-side onError fallbacks) mirrors buildHeroSlides exactly:
+ *   1. TMDB images.banner (resolved match only)
+ *   2. TMDB images.backdrop (resolved match only)
+ *   3. AniList details.images.banner
+ *   4. AniList details.images.cover
+ *   5. AniList details.images.poster (last image fallback)
+ *   6. (UI) cinematic gradient when no candidate exists or all fail to load
+ *
+ * Logo priority: TMDB logo.urlOriginal → TMDB logo.url → (UI) title heading;
+ * posters are never used as logos. The English title is preferred, falling
+ * back through the shared display-title chain. Nothing is ever fabricated.
+ */
+export function buildDetailsHeroSlide(
+  anime: Anime,
+  rawVisuals: unknown = null,
+): HeroSlide {
+  const visuals = normalizeTmdbVisuals(rawVisuals);
+  const artwork = getAnimeArtwork(anime);
+
+  const candidates: string[] = [];
+  const pushCandidate = (url: string | null): void => {
+    if (!url || !isOptimizableImageUrl(url)) return;
+    if (!candidates.includes(url)) candidates.push(url);
+  };
+  if (visuals.resolved) {
+    pushCandidate(visuals.banner);
+    pushCandidate(visuals.backdrop);
+  }
+  pushCandidate(artwork.banner);
+  pushCandidate(artwork.cover);
+  pushCandidate(artwork.poster);
+
+  const homePoster = getAnimePosterUrl(anime);
+  const posterUrl =
+    (isOptimizableImageUrl(homePoster) && homePoster) ||
+    (isOptimizableImageUrl(artwork.poster) ? artwork.poster : null);
+
+  const logoUrl = asHttpUrl(visuals.logo);
+  const logoFallback = asHttpUrl(visuals.logoFallback);
+
+  return {
+    anilistId: anime.anilistId,
+    malId: asFiniteNumber(anime.malId),
+    title: getEnglishTitle(anime) ?? getDisplayTitle(anime),
+    nativeTitle: getNativeTitle(anime),
+    description: getDisplayDescription(anime),
+    logoUrl,
+    logoFallbackUrl:
+      logoFallback && logoFallback !== logoUrl ? logoFallback : null,
+    backdropUrl: candidates[0] ?? null,
+    backdropFallbacks: candidates.slice(1),
+    posterUrl: posterUrl || null,
+    rating: getDisplayRating(anime),
+    year: getDisplayYear(anime),
+    episodeCount: getDisplayEpisodeCount(anime),
+    genres: getDisplayGenres(anime),
+  } satisfies HeroSlide;
+}
+
+/**
  * Builds the ranked entries for the "TOP 10 | CONTENT TODAY" row from the raw
  * `/api/home` trending list. Upstream order is preserved (rank = position),
  * entries are de-duplicated, and the best available portrait poster is
@@ -591,6 +733,21 @@ export function buildTopRatedEntries(
   max: number = MAX_TOP_RATED,
 ): PopularEntry[] {
   return buildPosterRowEntries(topRated, max);
+}
+
+/**
+ * Builds the entries for the "Seasonal Anime" row (the homepage's final
+ * carousel, below "TOP RATED ANIME") from the raw `/api/home` `seasonal`
+ * collection — a distinct section from trending/popular/topRated, never
+ * substituted. Upstream order is preserved exactly as delivered; the payload
+ * carries 20 entries with the identical card shape as the other rows, so
+ * every entry renders.
+ */
+export function buildSeasonalEntries(
+  seasonal: unknown,
+  max: number = MAX_SEASONAL,
+): PopularEntry[] {
+  return buildPosterRowEntries(seasonal, max);
 }
 
 /** Canonical 11-character YouTube video ID. */

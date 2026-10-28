@@ -197,10 +197,134 @@ body {
   animation: trailer-popup-in 280ms cubic-bezier(0.33, 1, 0.68, 1) both;
 }
 
+/* Exit: mirrors the entrance — opacity, the same horizontal translate out of
+   the poster's edge, and a scale-down — while the slot is already released,
+   so the players are gone and only the shell fades. Duration matches
+   EXIT_ANIM_MS in use-trailer-preview.ts (the shell unmounts right after).
+   The fading shell is click-through, and reduced-motion users get an
+   immediate vanish instead of a 240ms wait. */
+@keyframes trailer-popup-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(var(--trailer-popup-shift-x, -18px), 0, 0)
+      scale(0.96);
+  }
+}
+
+.trailer-popup-out {
+  animation: trailer-popup-out 240ms cubic-bezier(0.33, 1, 0.68, 1) both;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trailer-popup-in {
     animation: none;
   }
+
+  .trailer-popup-out {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* ---- Ambient trailer backdrop (full-viewport hover-preview background) ---- */
+
+/* While a carousel card's popup plays a trailer, this portaled layer plays
+   the same trailer behind the entire site: fixed to the viewport, heavily
+   blurred, dimmed by a gradient scrim and a cinematic vignette so it sets
+   atmosphere without competing with the UI. z-index -1 paints it above the
+   page's background canvas but below every in-flow element (navigation,
+   cards, buttons, the popup itself); pointer-events: none keeps scrolling,
+   clicking and hovering completely untouched. Enter/leave is opacity-only
+   (GPU-friendly); the leave duration matches FADE_OUT_MS in
+   TrailerAmbientBackground, whose timer unmounts the layer — and releases
+   the player — exactly when the fade completes. prefers-reduced-motion
+   collapses these transitions via the global reduce block below. */
+.trailer-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 640ms ease;
+}
+
+.trailer-ambient--on {
+  opacity: 1;
+}
+
+/* The blurred media layers (poster fallback and trailer) share one
+   treatment. The oversized scale hides the soft, semi-transparent edges a
+   blur would otherwise expose at the viewport borders. The gentle
+   brightness lift keeps the backdrop readable as atmosphere — visibly
+   brighter than the page, never washed out: the shade and vignette above
+   it still own the overall darkness. */
+.trailer-ambient__media {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.14);
+  filter: blur(28px) saturate(1.15) brightness(1.15);
+  transition: opacity 560ms ease;
+}
+
+.trailer-ambient__media--on {
+  opacity: 1;
+}
+
+/* The trailer frame — YouTube's iframe and the native <video> alike fill
+   the layer edge-to-edge; cover-fit crops odd-shaped direct sources. */
+.trailer-ambient__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+}
+
+/* Dark scrim with a gentle vertical gradient: heavier at the top and bottom
+   (where headings and card panels sit) so text contrast never depends on
+   how bright the trailer art is. */
+.trailer-ambient__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(5 5 7 / 0.78) 0%,
+    rgb(5 5 7 / 0.44) 24%,
+    rgb(5 5 7 / 0.5) 72%,
+    rgb(5 5 7 / 0.85) 100%
+  );
+}
+
+/* Subtle cinematic vignette — the backdrop brightens toward the center and
+   melts into the page's near-black at the edges. */
+.trailer-ambient__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    115% 90% at 50% 44%,
+    rgb(0 0 0 / 0) 40%,
+    rgb(0 0 0 / 0.52) 100%
+  );
+  box-shadow: inset 0 0 180px 40px rgb(0 0 0 / 0.55);
+}
+
+/* While the backdrop is on screen, the sections' opaque dark surfaces turn
+   translucent so the blurred trailer reads through them — the backdrop plays
+   "behind the whole website", not only behind the body canvas. The section
+   color (#050507) equals the page background, so the change is seamless;
+   the transition smooths the moment the class lands. The class drops only
+   after the backdrop has fully faded out, so the restore back to opaque
+   happens when nothing is visible and needs no transition of its own. */
+body.trailer-ambient-active section {
+  background-color: transparent;
+  transition: background-color 560ms ease;
 }
 
 /* ---- Liquid Glass — shared premium button skin ---- */
@@ -350,6 +474,320 @@ body {
   transform: none;
 }
 
+/* ---- Liquid Glass — translucent information panel ---- */
+
+/* Compact, non-interactive glass sheet for inline info panels (the anime
+   details page): the same water-glass recipe as .glass-btn but as a static
+   surface — translucent dark fill over the banner, thin rim, a top-edge
+   light and a soft drop shadow. Layout (radius, width, padding) stays owned
+   by the component via Tailwind utilities. */
+
+.glass-panel {
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background-color: rgb(10 10 14 / 0.42);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    inset 0 -1px 0 rgb(255 255 255 / 0.04),
+    0 16px 40px rgb(0 0 0 / 0.38);
+}
+
+/* ---- Floating navbar pill — global navbar (liquid glass) ---- */
+
+/* The global navbar is ONE cohesive water-glass capsule (see
+   site-navbar.tsx): a horizontally centered sheet of transparent glass
+   floating above the hero. Layering model:
+     element  — highly transparent dark tint + backdrop blur/saturation
+                (the refraction) + a hairline border that catches the light
+     ::before — watery top-edge highlight + a faint curved reflection
+     ::after  — a second specular sheen that drifts in on container hover
+   Controls inside are plain translucent fills (.nav-chip / .nav-login) —
+   no nested glass shells. Scroll state machine (see site-navbar.tsx):
+   base = expanded at the top of the page, --rest = mid-page idle rest,
+   --compact = actively scrolling (smallest, firmest glass). Height,
+   padding and scale ease on one spring curve with a subtle, controlled
+   bounce; fill/border/blur ease faster so the glass firms up cleanly. */
+
+.nav-pill {
+  border: 1px solid rgb(255 255 255 / 0.16);
+  /* Transparent dark tint — the artwork shows through; no grey fill. */
+  background-color: rgb(10 10 14 / 0.38);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  /* Curved-glass inner highlights + a soft, low-opacity drop shadow. */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    inset 0 -1px 0 rgb(255 255 255 / 0.06),
+    inset 0 14px 28px -20px rgb(255 255 255 / 0.22),
+    0 10px 26px rgb(0 0 0 / 0.24),
+    0 2px 8px rgb(0 0 0 / 0.14);
+  /* Scroll-state sizing lives here (not Tailwind utilities) so the spring
+     can animate it: --spring-dur shortens when entering the compact state
+     (snappier shrink) and stays long on the way back (softer expansion). */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-dur: 400ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  transform: scale(1);
+  height: 46px;
+  padding-left: 14px;
+  padding-right: 7px;
+  transition:
+    height var(--spring-dur) var(--spring),
+    padding var(--spring-dur) var(--spring),
+    transform var(--spring-dur) var(--spring),
+    background-color 300ms var(--ease),
+    border-color 300ms var(--ease),
+    box-shadow 300ms var(--ease),
+    backdrop-filter 300ms var(--ease),
+    -webkit-backdrop-filter 300ms var(--ease);
+}
+
+@media (min-width: 640px) {
+  .nav-pill {
+    height: 52px;
+    padding-left: 16px;
+    padding-right: 8px;
+  }
+}
+
+/* Watery top light + curved reflection. z -1 keeps it above the refraction
+   but under the controls. Hovering the pill eases the reflection brighter. */
+.nav-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.13) 0%,
+      rgb(255 255 255 / 0) 20%
+    ),
+    radial-gradient(
+      130% 190% at 14% -24%,
+      rgb(255 255 255 / 0.1) 0%,
+      rgb(255 255 255 / 0) 46%
+    );
+  opacity: 0.85;
+  transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Second sheen — drifts in gently on hover for a watery light shift. */
+.nav-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    80% 150% at 82% -30%,
+    rgb(255 255 255 / 0.09) 0%,
+    rgb(255 255 255 / 0) 52%
+  );
+  opacity: 0;
+  transform: translateX(-4%);
+  transition:
+    opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-pill:hover {
+  border-color: rgb(255 255 255 / 0.24);
+}
+
+.nav-pill:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-pill:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Mid-page idle rest — the scroll handler returns here ~300ms after the
+   last scroll event: slightly smaller than the top resting size, a touch
+   firmer glass. */
+.nav-pill--rest {
+  height: 44px;
+  padding-left: 13px;
+  padding-right: 6px;
+  border-color: rgb(255 255 255 / 0.19);
+  background-color: rgb(10 10 14 / 0.5);
+}
+
+@media (min-width: 640px) {
+  .nav-pill--rest {
+    height: 47px;
+    padding-left: 15px;
+    padding-right: 7px;
+  }
+}
+
+/* Actively scrolling — smallest state; the spring enters snappier, and the
+   glass strengthens (blur + border) so the compact pill stays readable
+   over busy mid-page content. */
+.nav-pill--compact {
+  --spring-dur: 300ms;
+  height: 42px;
+  padding-left: 12px;
+  padding-right: 5px;
+  border-color: rgb(255 255 255 / 0.22);
+  background-color: rgb(10 10 14 / 0.56);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.17),
+    inset 0 -1px 0 rgb(255 255 255 / 0.05),
+    0 12px 30px rgb(0 0 0 / 0.32),
+    0 2px 10px rgb(0 0 0 / 0.18);
+}
+
+@media (min-width: 640px) {
+  .nav-pill--compact {
+    height: 44px;
+    padding-left: 13px;
+    padding-right: 6px;
+  }
+}
+
+/* The transient scale is motion-safe only: reduced-motion users keep the
+   crisp full-size pill and still get the height compaction. */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-pill--compact {
+    transform: scale(0.985);
+  }
+}
+
+/* Entrance — a gentle drop that settles upward, animated on the header
+   shell (a separate element, so the keyframe's fill-mode can never block
+   the pill's own scale transitions). Skipped for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-enter {
+    animation: nav-pill-enter 760ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+  }
+}
+
+@keyframes nav-pill-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icon-only controls (Search, Random) inside the pill — translucent fills,
+   no own blur. Hover: brighter glass + a very slight scale (motion-safe). */
+.nav-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  color: rgb(255 255 255 / 0.72);
+  transition-property: background-color, border-color, color, box-shadow,
+    transform;
+  transition-duration: 240ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-chip:hover {
+  border-color: rgb(255 255 255 / 0.24);
+  background-color: rgb(255 255 255 / 0.15);
+  color: rgb(255 255 255 / 0.98);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.24),
+    0 6px 16px rgb(0 0 0 / 0.22);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-chip:hover {
+    transform: scale(1.06);
+  }
+}
+
+/* Login — the row's primary action: same glass language, brighter fill, and
+   a reflective streak that slides across on hover. Stays translucent — it
+   never becomes a solid grey button. */
+.nav-login {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.1);
+  background-image: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.14) 0%,
+    rgb(255 255 255 / 0) 44%
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+  color: rgb(255 255 255 / 0.92);
+  overflow: hidden;
+  transition-property: background-color, border-color, color, box-shadow,
+    transform;
+  transition-duration: 240ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-login::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.24) 0%,
+    rgb(255 255 255 / 0) 48%
+  );
+  opacity: 0;
+  transform: translateX(-12%);
+  transition:
+    opacity 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-login:hover {
+  border-color: rgb(255 255 255 / 0.32);
+  background-color: rgb(255 255 255 / 0.16);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-login:hover::before {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Visible keyboard focus, offset so it reads on any backdrop. */
+.nav-chip:focus-visible,
+.nav-login:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 0.95);
+  outline-offset: 2px;
+}
+
+.nav-chip:disabled,
+.nav-login:disabled {
+  cursor: not-allowed;
+}
+
 ::selection {
   background-color: rgba(255, 255, 255, 0.92);
   color: #050507;
@@ -366,5 +804,119 @@ body {
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Global footer ---- */
+
+/* The footer illustration is a 500×500 PNG cutout with a real alpha
+   channel, so it sits directly on the dark page — no frame needed. A
+   drop shadow (which follows the alpha shape) plus the glow rendered
+   behind it on the component side lift the dark artwork off the
+   near-black background. A slow float adds life, motion-safe only. */
+.footer-art {
+  filter: drop-shadow(0 24px 34px rgb(0 0 0 / 0.5));
+}
+
+@keyframes footer-art-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .footer-art {
+    animation: footer-art-float 7s ease-in-out infinite alternate;
+  }
+}
+
+/* ---- Custom 404 — "uncharted world" portal ---- */
+
+/* Slowly rotating conic arc ring around the 404 type. The radial mask
+   hollows the disc into a thin ring so only the arc is visible. */
+.nf-portal-ring {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.25) 10%,
+    transparent 24%,
+    rgb(160 160 255 / 0.16) 42%,
+    transparent 58%,
+    rgb(255 255 255 / 0.18) 80%,
+    transparent 96%
+  );
+  -webkit-mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2px)
+  );
+  mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2px)
+  );
+}
+
+@keyframes nf-portal-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes nf-halo-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+/* Drifting star/particle field: each span animates upward with a slight
+   sideways drift and fades out; duration, delay and drift are supplied per
+   star through inline custom properties (--nf-dur, --nf-delay, --nf-dx). */
+@keyframes nf-star-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(var(--nf-dx, 0px), -150px, 0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nf-portal-spin {
+    animation: nf-portal-spin 16s linear infinite;
+  }
+
+  .nf-halo {
+    animation: nf-halo-pulse 5s ease-in-out infinite;
+  }
+
+  .nf-star {
+    animation: nf-star-drift var(--nf-dur, 9s) linear var(--nf-delay, 0s)
+      infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-portal-spin,
+  .nf-halo,
+  .nf-star {
+    animation: none;
   }
 }

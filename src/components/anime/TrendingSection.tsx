@@ -19,10 +19,17 @@ import TrendingRow from "./TrendingRow";
  * owns), this row is self-contained: it shows its own compact loading
  * skeleton, error and empty states so a feed problem below the fold is still
  * explained — never padded with fabricated content.
+ *
+ * Spacing: the section carries no vertical padding of its own (the skeleton
+ * mirrors it automatically through the shared SECTION_CLASS). The gap above
+ * comes from PopularRow's reserved hover-panel padding with its wrapper
+ * pull-up (see PopularRow); the gap below comes from the same mechanism on
+ * TrendingRow. No `overflow-hidden` here — the hover panels overhang this
+ * section's box and overlay the next one.
  */
 
 const SECTION_CLASS =
-  "relative w-full overflow-hidden bg-[#050507] pb-16 pt-10 sm:pb-20 sm:pt-12 lg:pb-24";
+  "relative w-full bg-[#050507] hover:z-10 focus-within:z-20";
 
 function SectionHeading() {
   return (

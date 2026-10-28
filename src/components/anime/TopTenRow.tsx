@@ -35,7 +35,7 @@ export default function TopTenRow({ entries }: { entries: TopTenEntry[] }) {
         ref={scrollerRef}
         role="list"
         aria-label="Top 10 anime today"
-        className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-5 pt-4 sm:gap-5 sm:px-10 lg:gap-6 lg:px-16 xl:px-24"
+        className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-6 pt-4 sm:gap-5 sm:px-10 lg:gap-6 lg:px-16 xl:px-24"
       >
         {entries.map((entry) => (
           <TopTenCard key={entry.anilistId} entry={entry} />

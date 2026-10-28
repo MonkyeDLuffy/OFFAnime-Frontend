@@ -38,7 +38,7 @@ function describeFormat(format: string | null): string | null {
 /**
  * One "Popular Anime" card (the Trending row reuses it): a clean, image-
  * focused portrait poster that elevates on hover/focus, reveals an info
- * panel (Play / Watch Later / Info) below, and — after a 400ms hover —
+ * panel (Play / Watch Later / Info) below, and — after a 700ms hover —
  * expands into a Netflix-style trailer popup.
  *
  * - The panel is absolutely positioned and slides out of the poster's bottom
@@ -55,7 +55,7 @@ function describeFormat(format: string | null): string | null {
  *   default 75) so the text-heavy posters stay crisp at card size.
  * - Play and Info use the established `/anime/:id` navigation; Watch Later
  *   reuses the shared store (toggle + duplicate handling).
- * - Hover previews: the popup (see TrailerPopup) opens only after a 400ms
+ * - Hover previews: the popup (see TrailerPopup) opens only after a 700ms
  *   mouse hover and plays the official trailer carried by the card's own
  *   `/api/home` payload (no extra requests). Touch users tap to open the
  *   preview on the first tap and navigate with a second tap or the popup's
@@ -74,6 +74,7 @@ export default function PopularCard({ entry }: { entry: PopularEntry }) {
   const pointerTypeRef = useRef<string>("mouse");
   const {
     isActive,
+    exiting,
     previewSource,
     anchorRef,
     popupRef,
@@ -83,7 +84,7 @@ export default function PopularCard({ entry }: { entry: PopularEntry }) {
     onPopupPointerLeave,
     openPreviewFromTap,
     discardTrailer,
-  } = useTrailerPreview(entry.trailer);
+  } = useTrailerPreview(entry.trailer, entry.posterUrl);
   // Clamp guards against a candidates list shrinking between renders (ISR).
   const current =
     failedCount < candidates.length ? candidates[failedCount] : null;
@@ -203,14 +204,17 @@ export default function PopularCard({ entry }: { entry: PopularEntry }) {
       </div>
 
       {/* Delayed hover preview — portaled to <body> so the scroller's
-          overflow clip can never cut it off; anchored to this card. */}
-      {isActive ? (
+          overflow clip can never cut it off; anchored to this card. The
+          shell stays mounted through its exit animation (players already
+          released the moment the slot frees up). */}
+      {isActive || exiting ? (
         <TrailerPopup
           entry={entry}
           metaLabel={metaParts.length > 0 ? metaParts.join(" · ") : null}
           anchorRef={anchorRef}
           popupRef={popupRef}
           source={previewSource}
+          closing={exiting && !isActive}
           onPointerEnter={onPopupPointerEnter}
           onPointerLeave={onPopupPointerLeave}
           onFailed={discardTrailer}

@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TrailerSource } from "@/lib/types";
 import {
+  registerPopupTrailerPlayer,
+  unregisterPopupTrailerPlayer,
+} from "@/lib/trailer-sync";
+import {
   loadYouTubeIframeApi,
   type YouTubePlayer,
   type YouTubePlayerVars,
@@ -35,6 +39,9 @@ import {
  *   (blocked/unavailable video) and a never-playing player (autoplay
  *   refused) surface through `onError` / a missing PLAYING event → the
  *   popup falls back to its poster.
+ * - Master clock: once the embed is ready it registers itself as the sync
+ *   master (see src/lib/trailer-sync.ts); the ambient background
+ *   slave-tracks this player's timestamps so both stay in step.
  * - Direct media URLs use a native `<video>` element (no controls rendered,
  *   so pausing shows no UI); autoplay rejections and load errors take the
  *   same poster fallback path.
@@ -136,6 +143,13 @@ function YouTubePreview({
               event.target.mute();
               event.target.playVideo();
               setPlayerReady(true);
+              // This popup is the master clock for the ambient backdrop:
+              // its playback head is what the background slave-tracks (see
+              // TrailerAmbientBackground). Unregistered on teardown below.
+              registerPopupTrailerPlayer({
+                player: event.target,
+                videoId: source.videoId,
+              });
             },
             onStateChange: (event) => {
               if (cancelled) return;
@@ -155,6 +169,9 @@ function YouTubePreview({
 
     return () => {
       cancelled = true;
+      // Drop the master-clock registration before destroying the embed so
+      // the ambient background can never read a dead player's clock.
+      unregisterPopupTrailerPlayer(playerRef.current);
       try {
         playerRef.current?.destroy();
       } catch {

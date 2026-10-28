@@ -13,6 +13,16 @@ export interface YouTubePlayer {
   setVolume(volume: number): void;
   playVideo(): void;
   pauseVideo(): void;
+  /** Loads another video into the same embed — no destroy/recreate churn. */
+  loadVideoById(videoId: string): void;
+  /** Current playback head in seconds — the sync clocks read this. */
+  getCurrentTime(): number;
+  /** Loaded video's length in seconds (0 until its metadata has arrived). */
+  getDuration(): number;
+  /** YT.PlayerState value (-1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued). */
+  getPlayerState(): number;
+  /** Jumps the playback head without reloading or restarting the embed. */
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
   destroy(): void;
 }
 

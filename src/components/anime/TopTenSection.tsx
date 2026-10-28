@@ -25,7 +25,7 @@ export default async function TopTenSection() {
   return (
     <section
       aria-labelledby="top-ten-heading"
-      className="relative w-full overflow-hidden bg-[#050507] pb-16 pt-12 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-20"
+      className="relative w-full overflow-hidden bg-[#050507] pb-14 pt-10 sm:pt-12 lg:pt-14"
     >
       {/* Faint cool glow behind the heading so the section reads as its own
           beat without breaking the seamless #050507 page background. */}

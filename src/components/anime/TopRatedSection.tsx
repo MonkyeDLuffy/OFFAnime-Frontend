@@ -4,7 +4,8 @@ import PopularRow from "./PopularRow";
 import SectionReveal from "./SectionReveal";
 
 /**
- * "TOP RATED ANIME" — the homepage's final carousel, below "Trending Anime".
+ * "TOP RATED ANIME" — the homepage row below "Trending Anime" and above
+ * "Seasonal Anime".
  *
  * Reuses the exact `/api/home` feed the hero, Top 10, Popular and Trending
  * rows already load: within one render pass Next.js memoizes the identical
@@ -21,6 +22,15 @@ import SectionReveal from "./SectionReveal";
  * nothing when the feed failed or topRated is missing/empty — never padded
  * substitutes; entries with missing posters or trailers degrade gracefully
  * inside the card itself (gradient fallback, no preview).
+ *
+ * Spacing: the section carries no vertical padding of its own. The gap above
+ * comes from TrendingRow's reserved hover-panel padding with its wrapper
+ * pull-up; the gap below comes from the same mechanism on PopularRow — both
+ * hover info panels and the pulled-up Seasonal section rely on this section
+ * having no `overflow-hidden` to clip them. While a card is
+ * hovered/keyboard-focused the section lifts itself above Seasonal
+ * (hover:z-10 focus-within:z-20) so the overhanging panel overlays it,
+ * Netflix-style (see PopularRow for the stacking-context rationale).
  */
 export default async function TopRatedSection() {
   const feed = await getHomeFeed();
@@ -32,7 +42,7 @@ export default async function TopRatedSection() {
   return (
     <section
       aria-labelledby="top-rated-heading"
-      className="relative w-full overflow-hidden bg-[#050507] pb-16 pt-10 sm:pb-20 sm:pt-12 lg:pb-24"
+      className="relative w-full bg-[#050507] hover:z-10 focus-within:z-20"
     >
       <SectionReveal
         heading={

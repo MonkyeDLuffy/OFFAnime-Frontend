@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   claimActiveTrailer,
+  failActiveTrailer,
   releaseActiveTrailer,
   useIsActiveTrailer,
 } from "@/lib/active-trailer";
@@ -16,7 +17,9 @@ import type { TrailerSource } from "@/lib/types";
  * no separate requests. A mouse hover starts a 700ms delay; stray pointers
  * that leave earlier never claim anything. Once the delay fires, the card
  * claims the single active-trailer slot — evicting any other card's preview
- * instantly — and mounts its popup.
+ * instantly — and mounts its popup. The claim carries the resolved trailer
+ * and the card's poster so the page-level ambient background can mirror the
+ * popup's trailer behind the whole site (see TrailerAmbientBackground).
  *
  * Scrolling never opens previews: any scroll event cancels a pending open
  * and locks new ones briefly, so trackpad swipes and momentum (which slide
@@ -27,7 +30,9 @@ import type { TrailerSource } from "@/lib/types";
  * a short grace period keeps it alive so the pointer can travel between the
  * card and the popup without flicker, and entering either one cancels the
  * pending close. Escape, a pointerdown outside both, and any scroll close
- * at once.
+ * at once. Closing is animated: the slot releases immediately (unmounting
+ * the players) but the popup shell stays mounted for the exit animation,
+ * fading out with opacity/translate/scale before it unmounts.
  *
  * Touch/stylus pointers skip the hover machinery entirely: the card's click
  * handler calls `openPreviewFromTap` — the first tap claims the slot, a
@@ -41,10 +46,16 @@ const HOVER_DELAY_MS = 700;
 const CLOSE_DELAY_MS = 300;
 /** Hover-opens stay suppressed this long after the last scroll event. */
 const SCROLL_SUPPRESS_MS = 200;
+/** How long the popup shell stays mounted to play its exit animation. */
+const EXIT_ANIM_MS = 240;
 
-export function useTrailerPreview(source: TrailerSource | null) {
+export function useTrailerPreview(
+  source: TrailerSource | null,
+  posterUrl: string | null = null,
+) {
   const instanceKey = useId();
   const [discarded, setDiscarded] = useState(false);
+  const [exiting, setExiting] = useState(false);
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const scrollLockUntilRef = useRef(0);
@@ -54,6 +65,15 @@ export function useTrailerPreview(source: TrailerSource | null) {
   // only the two cards whose state actually flips re-render.
   const holdsSlot = useIsActiveTrailer(instanceKey);
   const isActive = holdsSlot && source !== null;
+
+  // Track the previous active state during render so the exit animation
+  // starts in the same commit that releases the slot — the popup never
+  // flashes out of existence before the fade can play.
+  const [wasActive, setWasActive] = useState(isActive);
+  if (wasActive !== isActive) {
+    setWasActive(isActive);
+    setExiting(!isActive);
+  }
 
   const clearOpenTimer = useCallback(() => {
     if (openTimerRef.current !== null) {
@@ -77,10 +97,16 @@ export function useTrailerPreview(source: TrailerSource | null) {
 
   /** Claim the slot now — the 700ms delay elapsed, or a touch tap opened it. */
   const claim = useCallback(() => {
+    if (source === null) return;
     clearOpenTimer();
     clearCloseTimer();
-    claimActiveTrailer(instanceKey);
-  }, [clearCloseTimer, clearOpenTimer, instanceKey]);
+    claimActiveTrailer({
+      key: instanceKey,
+      source,
+      poster: posterUrl,
+      failed: false,
+    });
+  }, [clearCloseTimer, clearOpenTimer, instanceKey, posterUrl, source]);
 
   /** Close after the grace delay so the pointer can travel card ↔ popup. */
   const scheduleClose = useCallback(() => {
@@ -102,12 +128,18 @@ export function useTrailerPreview(source: TrailerSource | null) {
       clearCloseTimer();
       if (isActive) return;
       clearOpenTimer();
+      const claimedSource = source;
       openTimerRef.current = window.setTimeout(() => {
         openTimerRef.current = null;
-        claimActiveTrailer(instanceKey);
+        claimActiveTrailer({
+          key: instanceKey,
+          source: claimedSource,
+          poster: posterUrl,
+          failed: false,
+        });
       }, HOVER_DELAY_MS);
     },
-    [clearCloseTimer, clearOpenTimer, isActive, instanceKey, source],
+    [clearCloseTimer, clearOpenTimer, isActive, instanceKey, posterUrl, source],
   );
 
   /** Card leave: cancel a pending open; close an open popup after the grace delay. */
@@ -179,6 +211,16 @@ export function useTrailerPreview(source: TrailerSource | null) {
     if (isActive) setDiscarded(false);
   }, [isActive]);
 
+  // Exit animation window: once the exit starts, the popup shell stays
+  // mounted (fading out) until the timer releases it. Re-claiming the slot
+  // mid-exit cancels it via the render-phase adjustment above; unmount
+  // cleanup below clears the timer.
+  useEffect(() => {
+    if (!exiting) return;
+    const timer = window.setTimeout(() => setExiting(false), EXIT_ANIM_MS);
+    return () => window.clearTimeout(timer);
+  }, [exiting]);
+
   // Unmount cleanup: pending timers + the active slot.
   useEffect(() => {
     const openTimer = openTimerRef;
@@ -190,11 +232,18 @@ export function useTrailerPreview(source: TrailerSource | null) {
     };
   }, [instanceKey]);
 
-  /** Playback/embed failure → drop the player, the popup keeps the poster. */
-  const discardTrailer = useCallback(() => setDiscarded(true), []);
+  /** Playback/embed failure → drop the player, the popup keeps the poster.
+      The slot's record is flagged so the ambient background falls back to
+      its poster in lockstep instead of playing a trailer the popup lost. */
+  const discardTrailer = useCallback(() => {
+    setDiscarded(true);
+    failActiveTrailer(instanceKey);
+  }, [instanceKey]);
 
   return {
     isActive,
+    /** True while the popup shell plays its exit animation (slot released). */
+    exiting,
     /** Non-null exactly while the player should be mounted. */
     previewSource: source !== null && isActive && !discarded ? source : null,
     anchorRef,

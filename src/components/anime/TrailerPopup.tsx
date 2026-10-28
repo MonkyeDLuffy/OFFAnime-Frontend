@@ -31,7 +31,10 @@ import WatchLaterButton from "./WatchLaterButton";
  * - Entrance: a 280ms transform-only animation — subtle horizontal
  *   translate out of the poster's edge (direction flips with the placement
  *   side via `--trailer-popup-shift-x`), a restrained scale, and opacity.
- *   No width/height/layout properties are animated.
+ *   No width/height/layout properties are animated. Dismissal mirrors it:
+ *   `closing` swaps the animation for a matching exit (opacity, translate,
+ *   scale-down) while the slot has already been released — the players are
+ *   gone, the shell just fades out and then unmounts.
  * - Video area: the card's poster backs the 16:9 frame (`object-cover`,
  *   never stretched) and stays visible while the player mounts (briefly
  *   deferred so the shell paints and the entrance animation starts first);
@@ -113,6 +116,7 @@ export default function TrailerPopup({
   anchorRef,
   popupRef,
   source,
+  closing = false,
   onPointerEnter,
   onPointerLeave,
   onFailed,
@@ -124,6 +128,8 @@ export default function TrailerPopup({
   popupRef: RefObject<HTMLDivElement | null>;
   /** Non-null exactly while the player should be mounted; null → poster. */
   source: TrailerSource | null;
+  /** True while the shell plays its exit animation (players already gone). */
+  closing?: boolean;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
   onFailed: () => void;
@@ -197,7 +203,7 @@ export default function TrailerPopup({
       aria-label={`${entry.title} preview`}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
-      className={`trailer-popup-in z-50 overflow-hidden rounded-xl border border-white/10 bg-[#0b0b11] shadow-[0_30px_80px_rgba(0,0,0,0.78)] ${
+      className={`${closing ? "trailer-popup-out" : "trailer-popup-in"} z-50 overflow-hidden rounded-xl border border-white/10 bg-[#0b0b11] shadow-[0_30px_80px_rgba(0,0,0,0.78)] ${
         placement ? "opacity-100" : "invisible"
       }`}
       style={popupStyle}

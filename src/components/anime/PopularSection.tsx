@@ -14,6 +14,12 @@ import SectionReveal from "./SectionReveal";
  * `popular` collection only — never the trending list. The hero owns feed
  * error/empty presentation, so this section renders nothing when the feed
  * failed or popular is missing/empty — never padded substitutes.
+ *
+ * Spacing: the section carries no vertical padding of its own. The gap above
+ * comes from TopTenSection's compact bottom padding; the gap below comes from
+ * PopularRow's reserved hover-panel padding with its wrapper pull-up (see
+ * PopularRow) — both hover info panels and the pulled-up next section rely
+ * on this section having no `overflow-hidden` to clip them.
  */
 export default async function PopularSection() {
   const feed = await getHomeFeed();
@@ -25,7 +31,7 @@ export default async function PopularSection() {
   return (
     <section
       aria-labelledby="popular-heading"
-      className="relative w-full overflow-hidden bg-[#050507] pb-6 pt-2 sm:pb-8"
+      className="relative w-full bg-[#050507] hover:z-10 focus-within:z-20"
     >
       <SectionReveal
         heading={
