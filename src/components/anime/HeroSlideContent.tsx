@@ -47,6 +47,7 @@ export default function HeroSlideContent({ slide }: { slide: HeroSlide }) {
       <div className="mt-5 flex items-center gap-3 sm:mt-6 sm:gap-3.5">
         <Link
           href={`/anime/${slide.anilistId}`}
+          prefetch={true}
           className="glass-btn inline-flex h-12 items-center gap-2.5 rounded-full px-8 text-sm font-semibold text-white sm:h-[52px] sm:px-10 sm:text-[15px]"
         >
           <Play className="h-[18px] w-[18px] fill-current" aria-hidden="true" />
@@ -55,6 +56,7 @@ export default function HeroSlideContent({ slide }: { slide: HeroSlide }) {
         <WatchLaterButton slide={slide} />
         <Link
           href={`/anime/${slide.anilistId}`}
+          prefetch={true}
           aria-label={`More information about ${slide.title}`}
           title="More information"
           className="glass-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white sm:h-[52px] sm:w-[52px]"

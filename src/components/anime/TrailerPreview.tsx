@@ -54,12 +54,16 @@ export default function TrailerPreview({
   source,
   muted,
   onFailed,
+  onAutoplayBlocked,
 }: {
   source: TrailerSource;
   muted: boolean;
   onFailed: () => void;
+  /** The browser refused unmuted autoplay — the caller shows a visible cue. */
+  onAutoplayBlocked?: () => void;
 }) {
   const [started, setStarted] = useState(false);
+  const [playingUnmuted, setPlayingUnmuted] = useState(false);
   const handlePlaying = useCallback(() => setStarted(true), []);
 
   return (
@@ -68,6 +72,7 @@ export default function TrailerPreview({
       className={`pointer-events-none absolute inset-0 z-[1] overflow-hidden transition-opacity duration-500 ease-out ${
         started ? "opacity-100" : "opacity-0"
       }`}
+      data-playing-unmuted={playingUnmuted ? "true" : "false"}
     >
       {source.kind === "youtube" ? (
         <YouTubePreview
@@ -75,6 +80,8 @@ export default function TrailerPreview({
           muted={muted}
           onPlaying={handlePlaying}
           onFailed={onFailed}
+          onAutoplayBlocked={onAutoplayBlocked}
+          setPlayingUnmuted={setPlayingUnmuted}
         />
       ) : (
         <NativeVideoPreview
@@ -82,6 +89,7 @@ export default function TrailerPreview({
           muted={muted}
           onPlaying={handlePlaying}
           onFailed={onFailed}
+          setPlayingUnmuted={setPlayingUnmuted}
         />
       )}
     </div>
@@ -93,11 +101,15 @@ function YouTubePreview({
   muted,
   onPlaying,
   onFailed,
+  onAutoplayBlocked,
+  setPlayingUnmuted,
 }: {
   source: Extract<TrailerSource, { kind: "youtube" }>;
   muted: boolean;
   onPlaying: () => void;
   onFailed: () => void;
+  onAutoplayBlocked?: () => void;
+  setPlayingUnmuted: (playing: boolean) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -115,7 +127,10 @@ function YouTubePreview({
     let cancelled = false;
     const playerVars: Partial<YouTubePlayerVars> = {
       autoplay: 1,
-      mute: 1,
+      // Starts unmuted when the caller permits it; browsers may still refuse
+      // unmuted autoplay, in which case we fall back to muted and surface a
+      // visible cue.
+      mute: muted ? 1 : 0,
       playsinline: 1,
       controls: 0,
       disablekb: 1,
@@ -155,7 +170,22 @@ function YouTubePreview({
               if (cancelled) return;
               // Fade in only once frames are actually on screen — the
               // pre-play overlays stay hidden behind the poster.
-              if (event.data === PLAYER_STATE_PLAYING) onPlaying();
+              if (event.data === PLAYER_STATE_PLAYING) {
+                onPlaying();
+                // Unmuted playback detected: audio is actually flowing.
+                if (!muted) setPlayingUnmuted(true);
+              }
+              // Autoplay refused unmuted: the player lands in PAUSED (2)
+              // instead of PLAYING (1). Fall back to muted playback and let
+              // the caller show a visible unmute cue.
+              if (
+                event.data === 2 &&
+                !muted &&
+                !cancelled &&
+                onAutoplayBlocked
+              ) {
+                onAutoplayBlocked();
+              }
             },
             onError: () => {
               if (!cancelled) onFailed();
@@ -180,7 +210,7 @@ function YouTubePreview({
       playerRef.current = null;
       target.remove();
     };
-  }, [source.videoId, onPlaying, onFailed]);
+  }, [source.videoId, muted, onPlaying, onFailed, onAutoplayBlocked, setPlayingUnmuted]);
 
   // Mute/unmute through the API — no reload, no restart, playback continues.
   useEffect(() => {
@@ -206,11 +236,13 @@ function NativeVideoPreview({
   muted,
   onPlaying,
   onFailed,
+  setPlayingUnmuted,
 }: {
   source: Extract<TrailerSource, { kind: "video" }>;
   muted: boolean;
   onPlaying: () => void;
   onFailed: () => void;
+  setPlayingUnmuted: (playing: boolean) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -218,6 +250,20 @@ function NativeVideoPreview({
     // Autoplay refused (browser policy) → restore the poster gracefully.
     videoRef.current?.play().catch(() => onFailed());
   }, [onFailed]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = muted;
+    // Track whether unmuted playback is actually flowing.
+    if (!muted) {
+      const check = () => {
+        if (!video.paused && !video.muted) setPlayingUnmuted(true);
+      };
+      video.addEventListener("playing", check);
+      return () => video.removeEventListener("playing", check);
+    }
+  }, [muted, setPlayingUnmuted]);
 
   // Toggle audio without stopping playback.
   useEffect(() => {
@@ -229,7 +275,7 @@ function NativeVideoPreview({
     <video
       ref={videoRef}
       src={source.src}
-      muted
+      muted={muted}
       loop
       autoPlay
       playsInline

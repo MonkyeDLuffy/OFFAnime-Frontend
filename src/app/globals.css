@@ -41,6 +41,24 @@ body {
   }
 }
 
+/* Subtle page transition — quick fade-in with a slight upward motion
+   (~300ms), respected only when motion is not reduced. The navbar and
+   footer stay stable; only page content animates. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter both;
+}
+
 @keyframes hero-loading-sweep {
   0% {
     transform: translateX(-130%);
@@ -476,21 +494,34 @@ body.trailer-ambient-active section {
 
 /* ---- Liquid Glass — translucent information panel ---- */
 
-/* Compact, non-interactive glass sheet for inline info panels (the anime
-   details page): the same water-glass recipe as .glass-btn but as a static
-   surface — translucent dark fill over the banner, thin rim, a top-edge
-   light and a soft drop shadow. Layout (radius, width, padding) stays owned
-   by the component via Tailwind utilities. */
+/* Premium frosted liquid-glass sheet for inline info panels (the anime
+   details page's right column): translucent dark fill over the banner, a
+   thin semi-transparent white rim, strong backdrop blur, a top-edge light
+   and a soft drop shadow. The glass is frosted enough to stay readable
+   against bright anime artwork while the art itself still shows through
+   — never a solid gray or black rectangle. Layout (radius, width,
+   padding) stays owned by the component via Tailwind utilities. */
 
 .glass-panel {
-  border: 1px solid rgb(255 255 255 / 0.14);
-  background-color: rgb(10 10 14 / 0.42);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.24);
+  background-color: rgb(15 15 22 / 0.35);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.16),
-    inset 0 -1px 0 rgb(255 255 255 / 0.04),
-    0 16px 40px rgb(0 0 0 / 0.38);
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 -1px 0 rgb(255 255 255 / 0.05),
+    0 18px 44px rgb(0 0 0 / 0.42);
+}
+
+/* Subtle dark shimmer used by the details skeleton — slow, restrained, no
+   bright white flashing. */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* ---- Floating navbar pill — global navbar (liquid glass) ---- */

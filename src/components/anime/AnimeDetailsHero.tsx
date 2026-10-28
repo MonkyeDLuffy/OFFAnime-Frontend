@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Play, Video, X } from "lucide-react";
+import { Play, Video, Volume2, VolumeX, X } from "lucide-react";
 import type { Anime, HeroSlide, TrailerSource } from "@/lib/types";
 import BackdropImage from "./BackdropImage";
 import DetailsInfoPanel from "./DetailsInfoPanel";
 import SlideLogo, { TitleHeading } from "./SlideLogo";
 import TrailerPreview from "./TrailerPreview";
 import WatchLaterButton from "./WatchLaterButton";
+import { getDisplayGenresJoined } from "@/lib/anime";
 
 /**
  * Cinematic full-viewport details hero for `/anime/[id]`.
@@ -18,20 +19,21 @@ import WatchLaterButton from "./WatchLaterButton";
  *      as the homepage hero, consumed through the shared BackdropImage with
  *      its client-side onError fallbacks). object-cover, never stretched.
  *   2. The trailer background (optional) — the Watch Trailer toggle mounts
- *      the shared TrailerPreview (muted autoplay, every YouTube UI element
- *      disabled) over the banner; it fades in only once playback is actually
- *      running, so the banner stays visible until then. A failed embed
- *      restores the banner by switching the toggle off — the banner is never
- *      unmounted, so there is no flash and no layout shift.
+ *      the shared TrailerPreview over the banner; it fades in only once
+ *      playback is actually running, so the banner stays visible until then.
+ *      Playback starts unmuted (when the browser permits it), and a dedicated
+ *      liquid-glass mute toggle sits bottom-right of the trailer area.
+ *      A failed embed restores the banner by switching the toggle off — the
+ *      banner is never unmounted, so there is no flash and no layout shift.
  *   3. Shared scrims: a left readability scrim behind the content, a top
  *      vignette under the floating navbar, and the homepage's bottom fade
  *      that blends the artwork into the #050507 page background. No uniform
  *      dark wash — the art stays bright and vibrant.
  *   4. The content row, pinned toward the bottom (the section is a flex
  *      column with mt-auto, so it can grow on short viewports instead of
- *      clipping): the left column (logo, English title, actions, clamped
- *      description) takes ~55–65% of the content width; the info panel sits
- *      right-aligned on desktop and stacks below on mobile.
+ *      clipping): the left column (logo, genres, English title, actions,
+ *      clamped description) takes ~55–65% of the content width; the info
+ *      panel sits right-aligned on desktop and stacks below on mobile.
  *
  * Controls: Play (playback flow arrives later — an honest disabled control
  * with a tooltip), Watch Later (the shared localStorage-backed toggle) and
@@ -51,6 +53,33 @@ function SoonTooltip({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Dedicated liquid-glass mute/unmute control for the details-page trailer
+ * background. Icon and aria state track the actual audio state; toggling
+ * flips the player's audio immediately without restarting playback.
+ */
+function TrailerMuteToggle({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={muted}
+      aria-label={muted ? "Unmute trailer" : "Mute trailer"}
+      title={muted ? "Unmute" : "Mute"}
+      className="glass-btn glass-btn--dark flex shrink-0 items-center justify-center rounded-full text-white fixed bottom-6 right-6 z-50 transition-[transform,box-shadow] duration-200 ease-out"
+    >
+      <span className="relative h-9 w-9 flex items-center justify-center">
+        {muted ? (
+          <VolumeX className="h-5 w-5" aria-hidden="true" />
+        ) : (
+          <Volume2 className="h-5 w-5" aria-hidden="true" />
+        )}
+        {/* Hover/press lift — readable on any backdrop, motion-safe only. */}
+      </span>
+    </button>
+  );
+}
+
 export default function AnimeDetailsHero({
   slide,
   info,
@@ -63,10 +92,18 @@ export default function AnimeDetailsHero({
   trailer: TrailerSource | null;
 }) {
   const [trailerOn, setTrailerOn] = useState(false);
+  // Starts unmuted; flips to muted when the user presses the toggle or when
+  // the browser refuses unmuted autoplay (visible cue then lets them enable
+  // sound explicitly).
+  const [muted, setMuted] = useState(false);
   const toggleTrailer = useCallback(() => setTrailerOn((on) => !on), []);
-  // A failed/unrefused embed restores the banner: the toggle flips off so the
-  // control state always matches what is on screen.
+  // A failed/unrefused embed restores the banner: the toggle flips off so
+  // the control state always matches what is on screen.
   const handleTrailerFailed = useCallback(() => setTrailerOn(false), []);
+  const handleAutoplayBlocked = useCallback(() => setMuted(true), []);
+  const toggleMuted = useCallback(() => setMuted((m) => !m), []);
+
+  const genres = getDisplayGenresJoined(info);
 
   return (
     <section
@@ -86,18 +123,28 @@ export default function AnimeDetailsHero({
       </div>
 
       {/* Trailer background — mounted over the banner while toggled on; the
-          video fades in above the banner only once playback is running. */}
+          video fades in above the banner only once playback is running.
+          Unmuted by default when the browser permits it; muted otherwise
+          with a visible unmute cue. */}
       {trailerOn && trailer ? (
         <div className="absolute inset-0 z-[2]" aria-hidden="true">
           <TrailerPreview
             source={trailer}
-            muted={true}
+            muted={muted}
             onFailed={handleTrailerFailed}
+            onAutoplayBlocked={handleAutoplayBlocked}
           />
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.5)_0%,rgba(0,0,0,0.2)_28%,rgba(0,0,0,0)_58%)]" />
         </div>
       ) : null}
 
+      {/* Dedicated mute/unmute control for the trailer background — positioned
+          bottom-right over the trailer area at a stacking level above the
+          content column so it stays reachable while the trailer plays. Only
+          mounted while the trailer is on. */}
+      {trailerOn && trailer ? (
+        <TrailerMuteToggle muted={muted} onToggle={toggleMuted} />
+      ) : null}
       {/* Shared scrims: top vignette under the navbar + bottom fade that
           blends the artwork into the page background (homepage recipe). */}
       <div
@@ -113,7 +160,7 @@ export default function AnimeDetailsHero({
           clipping when the viewport is short. */}
       <div className="relative z-20 mt-auto w-full px-6 pb-14 pt-40 sm:px-10 sm:pb-16 lg:px-16 lg:pb-20 xl:px-24">
         <div className="hero-content-in flex w-full flex-col gap-7 sm:gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
-          {/* Left column — logo, English title, actions, description
+          {/* Left column — logo, genres, English title, actions, description
               (~60% of the content row on desktop; inner elements self-constrain
               their own widths). */}
           <div className="min-w-0 lg:w-[60%]">
@@ -124,12 +171,24 @@ export default function AnimeDetailsHero({
                   fallbackSrc={slide.logoFallbackUrl}
                   title={slide.title}
                 />
-                <h1 className="mt-3 text-lg font-medium text-white/90 sm:text-xl">
+                {genres ? (
+                  <p className="mt-3 text-xs font-medium tracking-[0.12em] text-white/65 uppercase sm:text-sm">
+                    {genres}
+                  </p>
+                ) : null}
+                <h1 className="mt-2 text-lg font-medium text-white/90 sm:text-xl">
                   {slide.title}
                 </h1>
               </>
             ) : (
-              <TitleHeading title={slide.title} />
+              <>
+                {genres ? (
+                  <p className="mt-1 text-xs font-medium tracking-[0.12em] text-white/65 uppercase sm:text-sm">
+                    {genres}
+                  </p>
+                ) : null}
+                <TitleHeading title={slide.title} />
+              </>
             )}
 
             <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:mt-7 sm:gap-3">

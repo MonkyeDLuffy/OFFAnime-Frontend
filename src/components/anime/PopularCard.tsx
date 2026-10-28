@@ -112,6 +112,7 @@ export default function PopularCard({ entry }: { entry: PopularEntry }) {
         <Link
           href={detailsUrl}
           aria-label={entry.title}
+          prefetch={true}
           onClick={(event) => {
             // Keyboard activation (detail 0) and mouse clicks navigate as
             // always; a touch tap opens the preview on the first tap and

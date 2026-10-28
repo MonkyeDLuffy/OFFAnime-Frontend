@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import SiteFooter from "@/components/site-footer";
 import SiteNavbar from "@/components/site-navbar";
+import PageTransition from "@/components/PageTransition";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,7 +31,7 @@ export default function RootLayout({
         {/* Global navbar — fixed overlay, mounted once here so every route
             (including the custom 404) gets it. */}
         <SiteNavbar />
-        {children}
+        <PageTransition>{children}</PageTransition>
         {/* Global footer — mounted once here so every route (including the
             custom 404) gets it without per-page duplication. */}
         <SiteFooter />

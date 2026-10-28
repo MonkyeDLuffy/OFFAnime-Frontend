@@ -35,6 +35,7 @@ export default function TopTenCard({ entry }: { entry: TopTenEntry }) {
       <Link
         href={`/anime/${entry.anilistId}`}
         aria-label={`Number ${entry.rank}: ${entry.title}`}
+        prefetch={true}
         className="block focus-visible:outline-none"
       >
         <span aria-hidden="true" className="top10-rank">

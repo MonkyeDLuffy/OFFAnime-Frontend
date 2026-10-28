@@ -45,7 +45,7 @@ export default function DetailsInfoPanel({
   return (
     <aside
       aria-label={`${title} information`}
-      className="glass-panel w-full max-w-[340px] self-start overflow-hidden rounded-2xl lg:w-[300px] lg:max-w-none lg:self-end"
+      className="glass-panel w-full max-w-[340px] self-start overflow-hidden rounded-2xl sm:max-w-[320px] lg:max-w-[300px] lg:self-end"
     >
       <dl>
         {rows.map((row, index) => (

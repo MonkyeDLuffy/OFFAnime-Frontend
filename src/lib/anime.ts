@@ -239,6 +239,15 @@ export function getDisplayDuration(anime: Anime): string | null {
   return `${whole} min`;
 }
 
+/**
+ * "Action • Adventure • Fantasy • Supernatural" — the anime's genres joined
+ * with small separators. Null when the payload carries no usable genres.
+ */
+export function getDisplayGenresJoined(anime: Anime): string | null {
+  const genres = getDisplayGenres(anime);
+  return genres.length > 0 ? genres.join(" • ") : null;
+}
+
 export function getDisplayGenres(anime: Anime): string[] {
   if (!Array.isArray(anime.genres)) return [];
   return anime.genres

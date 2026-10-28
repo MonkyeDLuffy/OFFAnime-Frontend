@@ -280,6 +280,7 @@ export default function TrailerPopup({
         <div className="mt-3 flex items-center gap-2">
           <Link
             href={`/anime/${entry.anilistId}`}
+            prefetch={true}
             aria-label={`Play ${entry.title}`}
             title="Play"
             className="glass-btn glass-btn--bright flex h-11 w-11 items-center justify-center rounded-full"
@@ -296,6 +297,7 @@ export default function TrailerPopup({
           />
           <Link
             href={`/anime/${entry.anilistId}`}
+            prefetch={true}
             aria-label={`More information about ${entry.title}`}
             title="More information"
             className="glass-btn flex h-11 w-11 items-center justify-center rounded-full text-white"
