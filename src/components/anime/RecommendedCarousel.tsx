@@ -97,7 +97,7 @@ export default function RecommendedCarousel({
   return (
     <section
       aria-labelledby="recommended-heading"
-      className="relative w-full bg-[#050507] overflow-hidden"
+      className="relative w-full bg-[#050507]"
     >
       <div className="relative px-6 sm:px-10 lg:px-16 xl:px-24">
         <h2
@@ -107,12 +107,12 @@ export default function RecommendedCarousel({
           Recommended Anime
         </h2>
 
-        <div className="relative mt-4 -mb-8 sm:mt-5 sm:-mb-12">
+        <div className="relative mt-8 sm:mt-10">
           <ul
             ref={scrollerRef}
             role="list"
             aria-label={listLabel}
-            className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-28 pt-4 sm:gap-5 sm:px-10 sm:pb-32 lg:gap-6 lg:px-16 xl:px-24"
+            className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-36 pt-4 sm:gap-5 sm:px-10 sm:pb-40 lg:gap-6 lg:px-16 xl:px-24"
           >
             {entries.map((entry) => (
               <PopularCard key={entry.anilistId} entry={entry} />
