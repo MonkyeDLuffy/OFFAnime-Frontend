@@ -108,7 +108,9 @@ export default function PopularCard({ entry }: { entry: PopularEntry }) {
       }}
       className="group/pop relative z-0 w-[58vw] max-w-[240px] shrink-0 focus-within:z-30 hover:z-30 sm:w-[240px] md:w-[260px] lg:w-[280px] xl:w-[290px] 2xl:w-[300px]"
     >
-      <div className="relative transition-transform duration-300 ease-out group-focus-within/pop:-translate-y-1.5 group-focus-within/pop:scale-[1.02] group-hover/pop:-translate-y-1.5 group-hover/pop:scale-[1.02]">
+      <div
+        className="relative transition-transform duration-300 ease-out group-focus-within/pop:-translate-y-1.5 group-focus-within/pop:scale-[1.02] group-hover/pop:-translate-y-1.5 group-hover/pop:scale-[1.02] details-anime-card"
+      >
         <Link
           href={detailsUrl}
           aria-label={entry.title}

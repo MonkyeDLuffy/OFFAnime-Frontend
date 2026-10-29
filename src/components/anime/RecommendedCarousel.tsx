@@ -100,52 +100,54 @@ export default function RecommendedCarousel({
       className="relative w-full bg-[#050507]"
     >
       <div className="relative px-6 sm:px-10 lg:px-16 xl:px-24">
-        <h2
-          id="recommended-heading"
-          className="mb-5 text-2xl font-black tracking-[-0.01em] text-white sm:text-3xl lg:text-4xl"
-        >
-          Recommended Anime
-        </h2>
-
-        <div className="relative mt-8 sm:mt-10">
-          <ul
-            ref={scrollerRef}
-            role="list"
-            aria-label={listLabel}
-            className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-36 pt-4 sm:gap-5 sm:px-10 sm:pb-40 lg:gap-6 lg:px-16 xl:px-24"
+        <div className="details-section">
+          <h2
+            id="recommended-heading"
+            className="mb-5 details-section-heading details-section-spacing sm:text-3xl lg:text-4xl"
           >
-            {entries.map((entry) => (
-              <PopularCard key={entry.anilistId} entry={entry} />
-            ))}
-          </ul>
+            Recommended Anime
+          </h2>
 
-          {canScrollLeft ? (
-            <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_LEFT_CLASS} />
-          ) : null}
-          {canScrollRight ? (
-            <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_RIGHT_CLASS} />
-          ) : null}
+          <div className="relative mt-8 sm:mt-10 details-section-carousel">
+            <ul
+              ref={scrollerRef}
+              role="list"
+              aria-label={listLabel}
+              className="no-scrollbar flex gap-4 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-36 pt-4 sm:gap-5 sm:px-10 sm:pb-40 lg:gap-6 lg:px-16 xl:px-24"
+            >
+              {entries.map((entry) => (
+                <PopularCard key={entry.anilistId} entry={entry} />
+              ))}
+            </ul>
 
-          {canScrollLeft ? (
-            <button
-              type="button"
-              onClick={() => scrollByPage(-1)}
-              aria-label={`Scroll ${listLabel} backward`}
-              className={`${CAROUSEL_NAV_BUTTON_CLASS} left-3 sm:left-5`}
-            >
-              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-            </button>
-          ) : null}
-          {canScrollRight ? (
-            <button
-              type="button"
-              onClick={() => scrollByPage(1)}
-              aria-label={`Scroll ${listLabel} forward`}
-              className={`${CAROUSEL_NAV_BUTTON_CLASS} right-3 sm:right-5`}
-            >
-              <ChevronRight className="h-5 w-5" aria-hidden="true" />
-            </button>
-          ) : null}
+            {canScrollLeft ? (
+              <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_LEFT_CLASS} />
+            ) : null}
+            {canScrollRight ? (
+              <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_RIGHT_CLASS} />
+            ) : null}
+
+            {canScrollLeft ? (
+              <button
+                type="button"
+                onClick={() => scrollByPage(-1)}
+                aria-label={`Scroll ${listLabel} backward`}
+                className={`${CAROUSEL_NAV_BUTTON_CLASS} left-3 sm:left-5`}
+              >
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+            ) : null}
+            {canScrollRight ? (
+              <button
+                type="button"
+                onClick={() => scrollByPage(1)}
+                aria-label={`Scroll ${listLabel} forward`}
+                className={`${CAROUSEL_NAV_BUTTON_CLASS} right-3 sm:right-5`}
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>

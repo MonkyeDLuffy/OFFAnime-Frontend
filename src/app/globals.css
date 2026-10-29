@@ -864,7 +864,126 @@ body.trailer-ambient-active section {
   }
 }
 
-/* ---- Custom 404 — "uncharted world" portal ---- */
+/* ---- Section headings — premium typography for details sections (Episodes,
+   Recommended Anime) ---- */
+
+/* Premium, cinematic section headings using the project's Inter font:
+   clean geometric sans-serif, strong weight, tracked letterforms, subtle
+   letter-spacing. These match the existing dark streaming-platform aesthetic
+   without decorative effects. */
+.details-section-heading {
+  @apply font-sans font-black tracking-[-0.02em] text-white;
+  letter-spacing: -0.02em;
+}
+
+.details-section-heading:where(h2) {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+@media (min-width: 640px) {
+  .details-section-heading:where(h2) {
+    font-size: 3rem;
+  }
+}
+
+/* Section transition group: staggered fade-up entrance for heading + carousel.
+   Each section enters once on mount and respects prefers-reduced-motion. */
+.details-section {
+  position: relative;
+}
+
+.details-section-heading,
+.details-section-carousel {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.details-section:not(.details-section--reduced-motion) .details-section-heading {
+  animation: details-fade-up 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.details-section:not(.details-section--reduced-motion) .details-section-carousel {
+  animation: details-fade-up 600ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+}
+
+@keyframes details-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details-section-heading,
+  .details-section-carousel {
+    transition: none;
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card hover: smooth lift + scale + brightness, transform-only so no layout
+   shift and no neighbor push. Transform values compose with Tailwind's
+   standalone translate/scale utilities. */
+.details-anime-card {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.details-anime-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 24px 48px rgb(0 0 0 / 0.6),
+    0 0 0 1px rgb(255 255 255 / 0.15);
+}
+
+.details-anime-card img:hover {
+  transform: scale(1.02);
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: brightness(1.06);
+}
+
+/* Episode title: brighter on card hover, smooth color transition. */
+.details-anime-card:hover .details-anime-title {
+  color: rgb(255 255 255 / 1);
+  transition: color 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Vertical spacing between Episodes and Recommended Anime sections. */
+.details-section-spacing {
+  margin-top: 56px;
+}
+
+@media (min-width: 768px) {
+  .details-section-spacing {
+    margin-top: 64px;
+  }
+}
+
+/* Ensure the carousel's bottom padding reserves space for hover expansion
+   without clipping into the footer. */
+.details-carousel-bottom-padding {
+  padding-bottom: 64px;
+}
+
+@media (min-width: 768px) {
+  .details-carousel-bottom-padding {
+    padding-bottom: 80px;
+  }
+}
 
 /* Slowly rotating conic arc ring around the 404 type. The radial mask
    hollows the disc into a thin ring so only the arc is visible. */

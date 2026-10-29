@@ -61,79 +61,81 @@ export default function EpisodesCarousel({
       className="relative w-full bg-[#050507] overflow-hidden"
     >
       <div className="relative px-6 sm:px-10 lg:px-16 xl:px-24">
-        <h2
-          id="episodes-heading"
-          className="mb-5 text-2xl font-black tracking-[-0.01em] text-white sm:text-3xl lg:text-4xl"
-        >
-          Episodes
-        </h2>
+        <div className="details-section">
+          <h2
+            id="episodes-heading"
+            className="mb-5 details-section-heading sm:text-3xl lg:text-4xl"
+          >
+            Episodes
+          </h2>
 
-        {isLoading ? (
-          <p className="text-sm text-white/50" aria-live="polite">
-            Loading episodes…
-          </p>
-        ) : error ? (
-          <p className="text-sm text-white/50">
-            Failed to load episodes.{" "}
-            <a
-              href={`/anime/${anilistId}`}
-              className="underline hover:text-white focus:outline-none focus:ring-2 focus:ring-white"
-            >
-              Retry
-            </a>
-          </p>
-        ) : displayEpisodes.length === 0 ? (
-          <p className="text-sm text-white/50">
-            No episodes available for this title.
-          </p>
-        ) : (
-          <>
-            <div className="relative mt-4 -mb-8 sm:mt-5 sm:-mb-12">
-              <ul
-                ref={scrollerRef}
-                role="list"
-                aria-label={listLabel}
-                className="no-scrollbar flex gap-5 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-16 pt-4 sm:gap-6 sm:px-10 sm:pb-20 lg:gap-7 lg:px-16 xl:px-24"
+          {isLoading ? (
+            <p className="text-sm text-white/50" aria-live="polite">
+              Loading episodes…
+            </p>
+          ) : error ? (
+            <p className="text-sm text-white/50">
+              Failed to load episodes.{" "}
+              <a
+                href={`/anime/${anilistId}`}
+                className="underline hover:text-white focus:outline-none focus:ring-2 focus:ring-white"
               >
-                {displayEpisodes.map((ep) =>
-                  isLoading ? (
-                    <EpisodeSkeleton key={ep.episode} />
-                  ) : (
-                    <EpisodeCard key={ep.episode} episode={ep as AnimeEpisode} />
-                  )
-                )}
-              </ul>
-
-              {canScrollLeft ? (
-                <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_LEFT_CLASS} />
-              ) : null}
-              {canScrollRight ? (
-                <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_RIGHT_CLASS} />
-              ) : null}
-
-              {canScrollLeft ? (
-                <button
-                  type="button"
-                  onClick={() => scrollByPage(-1)}
-                  aria-label={`Scroll ${listLabel} backward`}
-                  className={`${CAROUSEL_NAV_BUTTON_CLASS} left-3 sm:left-5`}
+                Retry
+              </a>
+            </p>
+          ) : displayEpisodes.length === 0 ? (
+            <p className="text-sm text-white/50">
+              No episodes available for this title.
+            </p>
+          ) : (
+            <>
+              <div className="relative mt-4 -mb-8 sm:mt-5 sm:-mb-12">
+                <ul
+                  ref={scrollerRef}
+                  role="list"
+                  aria-label={listLabel}
+                  className="details-section-carousel no-scrollbar flex gap-5 overflow-x-auto overflow-y-clip overscroll-x-contain px-6 pb-16 pt-4 sm:gap-6 sm:px-10 sm:pb-20 lg:gap-7 lg:px-16 xl:px-24"
                 >
-                  <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-                </button>
-              ) : null}
-              {canScrollRight ? (
-                <button
-                  type="button"
-                  onClick={() => scrollByPage(1)}
-                  aria-label={`Scroll ${listLabel} forward`}
-                  className={`${CAROUSEL_NAV_BUTTON_CLASS} right-3 sm:right-5`}
-                >
-                  <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                </button>
-              ) : null}
-            </div>
-          </>
-        )}
+                  {displayEpisodes.map((ep) =>
+                    isLoading ? (
+                      <EpisodeSkeleton key={ep.episode} />
+                    ) : (
+                      <EpisodeCard key={ep.episode} episode={ep as AnimeEpisode} />
+                    )
+                  )}
+                </ul>
+
+                {canScrollLeft ? (
+                  <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_LEFT_CLASS} />
+                ) : null}
+                {canScrollRight ? (
+                  <div aria-hidden="true" className={CAROUSEL_EDGE_FADE_RIGHT_CLASS} />
+                ) : null}
+
+                {canScrollLeft ? (
+                  <button
+                    type="button"
+                    onClick={() => scrollByPage(-1)}
+                    aria-label={`Scroll ${listLabel} backward`}
+                    className={`${CAROUSEL_NAV_BUTTON_CLASS} left-3 sm:left-5`}
+                  >
+                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                ) : null}
+                {canScrollRight ? (
+                  <button
+                    type="button"
+                    onClick={() => scrollByPage(1)}
+                    aria-label={`Scroll ${listLabel} forward`}
+                    className={`${CAROUSEL_NAV_BUTTON_CLASS} right-3 sm:right-5`}
+                  >
+                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </section>
   );
