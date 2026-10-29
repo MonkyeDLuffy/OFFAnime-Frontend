@@ -228,3 +228,32 @@ export interface EpisodesResponse {
   source: string;
   diagnostics: Record<string, unknown>;
 }
+
+/**
+ * Recommendation entry from the anime details response.
+ * Derived from the `recommendations` array in `/api/details/:id`.
+ */
+export interface AnimeRecommendation {
+  id: number;
+  anilistId: number;
+  title: string | null;
+  titleEnglish: string | null;
+  titleRomaji: string | null;
+  images: {
+    poster: string | null;
+    banner: string | null;
+  } | null;
+  format: string | null;
+  episodes: number | null;
+  status: string | null;
+  seasonYear: number | null;
+  averageScore: number | null;
+  genres: string[];
+  recommendationRating: number | null;
+}
+
+/** `GET /api/recommendations/:id` response shape (also available inline in `/api/details/:id`). */
+export interface RecommendationsResponse {
+  anilistId: number;
+  recommendations: AnimeRecommendation[];
+}

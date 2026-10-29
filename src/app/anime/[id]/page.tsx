@@ -9,8 +9,9 @@ import {
   getDisplayDescription,
   getDisplayTitle,
 } from "@/lib/anime";
-import { getAnimeDetails, getAnimeEpisodes, getHomeFeed, getTmdbVisuals } from "@/lib/api";
+import { extractRecommendations, getAnimeDetails, getAnimeEpisodes, getHomeFeed, getTmdbVisuals } from "@/lib/api";
 import type { EpisodesResponse, TrailerSource } from "@/lib/types";
+import RecommendedCarousel from "@/components/anime/RecommendedCarousel";
 
 /**
  * Anime details page `/anime/[id]` (`id` = AniList ID — the exact target the
@@ -95,6 +96,10 @@ export default async function AnimeDetailsPage({
   const episodesResult = await getAnimeEpisodes(anilistId);
   const episodesData: EpisodesResponse | null = episodesResult.ok ? episodesResult.data : null;
 
+  // Recommendations from the details response (already fetched above).
+  // The Anime type from the details response includes the recommendations array.
+  const recommendations = extractRecommendations(details.data as { recommendations?: unknown } | null);
+
   return (
     <main>
       <AnimeDetailsHero
@@ -107,6 +112,9 @@ export default async function AnimeDetailsPage({
         isLoading={false}
         error={!episodesResult.ok}
         anilistId={anilistId}
+      />
+      <RecommendedCarousel
+        recommendations={recommendations}
       />
     </main>
   );

@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Anime, ApiResult, HomeFeed, TmdbVisuals, EpisodesResponse } from "./types";
+import type { Anime, ApiResult, HomeFeed, TmdbVisuals, EpisodesResponse, AnimeRecommendation } from "./types";
 
 /**
  * Server-side client for the OffAnime backend (backend.md §5, §10).
@@ -214,6 +214,39 @@ export function getAnimeEpisodes(anilistId: number): Promise<ApiResult<EpisodesR
     0,
     HOME_TIMEOUT_MS,
   );
+}
+
+/**
+ * Extract recommendations from an anime details response.
+ * The `/api/details/:id` response already includes a `recommendations` array.
+ * This helper normalizes the raw recommendations into the `AnimeRecommendation` shape.
+ */
+export function extractRecommendations(
+  detailsResponse: { recommendations?: unknown } | null,
+): AnimeRecommendation[] {
+  if (!detailsResponse || !Array.isArray(detailsResponse.recommendations)) {
+    return [];
+  }
+  return detailsResponse.recommendations
+    .filter((rec): rec is Record<string, unknown> => {
+      if (!rec || typeof rec !== "object") return false;
+      return typeof rec.id === "number" && rec.id > 0;
+    })
+    .map((rec) => ({
+      id: rec.id as number,
+      anilistId: (rec.anilistId as number) ?? (rec.id as number),
+      title: rec.title as string | null,
+      titleEnglish: rec.titleEnglish as string | null,
+      titleRomaji: rec.titleRomaji as string | null,
+      images: rec.images as { poster: string | null; banner: string | null } | null,
+      format: rec.format as string | null,
+      episodes: rec.episodes as number | null,
+      status: rec.status as string | null,
+      seasonYear: rec.seasonYear as number | null,
+      averageScore: rec.averageScore as number | null,
+      genres: Array.isArray(rec.genres) ? rec.genres.filter((g): g is string => typeof g === "string") : [],
+      recommendationRating: rec.recommendationRating as number | null,
+    }));
 }
 
 /**
